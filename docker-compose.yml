@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # İlk proje (Laravel 11)
+  nginx:
+    image: nginx:alpine
+    container_name: laravel11_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - ./laravel11:/var/www/html
+    depends_on:
+      - laravel11
+    networks:
+      - laravel11-network
+
+  laravel11:
+    build:
+      context: ./laravel11
+      dockerfile: Dockerfile
+    container_name: laravel11_app
+    volumes:
+      - ./laravel11:/var/www/html
+    working_dir: /var/www/html
+    networks:
+      - laravel11-network
+    depends_on:
+      - db
+
+  # İkinci proje (Deneme)
+  deneme_nginx:
+    image: nginx:alpine
+    container_name: deneme_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./deneme/nginx:/etc/nginx/conf.d
+      - ./deneme/laravel11:/var/www/html
+    depends_on:
+      - deneme_app
+    networks:
+      - deneme-network
+
+  deneme_app:
+    build:
+      context: ./deneme/laravel11
+      dockerfile: Dockerfile
+    container_name: deneme_app
+    volumes:
+      - ./deneme/laravel11:/var/www/html
+    working_dir: /var/www/html
+    networks:
+      - deneme-network
+    depends_on:
+      - db
+
+  # Tek veritabanı servisi
+  db:
+    image: mysql:8.0
+    container_name: db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - laravel11-network
+      - deneme-network
+
+volumes:
+  dbdata:
+    driver: local
+
+networks:
+  laravel11-network:
+    driver: bridge
+  deneme-network:
+    driver: bridge
